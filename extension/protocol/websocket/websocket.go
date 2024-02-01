@@ -8,6 +8,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -74,6 +75,7 @@ func (ln *Listener) Accept() (net.Conn, error) {
 // Conn wraps websocket.Conn to net.Conn
 type Conn struct {
 	*websocket.Conn
+	sync.Mutex
 	chHandler chan func()
 	buffer    []byte
 }
@@ -111,6 +113,8 @@ func (c *Conn) Read(b []byte) (int, error) {
 
 // Write .
 func (c *Conn) Write(b []byte) (int, error) {
+	c.Lock()
+	defer c.Unlock()
 	err := c.WriteMessage(websocket.BinaryMessage, b)
 	if err == nil {
 		return len(b), nil
